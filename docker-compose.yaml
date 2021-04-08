@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+    app:
+      build:
+        context: node
+        dockerfile: dockerfile.prod
+      image: polivetti/nodejs-fullcycle
+      container_name: app
+      networks: 
+        - app-network
+      volumes: 
+        - ./node:/usr/src/app
+      tty: true
+      restart: unless-stopped
+      depends_on: 
+          - db 
+    
+    webserver:
+      build:
+        context: nginx
+        dockerfile: dockerfile.prod
+      image: polivetti/nginx
+      container_name: webserver
+      restart: unless-stopped
+      ports:
+        - "8080:80"
+      volumes:
+        - ./nginx/nginx-conf:/etc/nginx/conf.d
+      depends_on:
+        - app 
+      networks:
+        - app-network
+
+    db:
+        image: mysql:5.7
+        command: --innodb-use-native-aio=0
+        container_name: db
+        restart: always
+        tty: true
+        volumes: 
+          - ./mysql:/var/lib/mysql
+        environment: 
+          - MYSQL_DATABASE=nodedb
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_USER=admin
+        networks: 
+          - app-network
+
+networks: 
+  app-network:
+    driver: bridge
